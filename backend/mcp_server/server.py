@@ -8,10 +8,12 @@ all through the Model Context Protocol.
 
 from mcp.server.fastmcp import FastMCP
 
+from api.agent import BiomedicalAgent
 from api.data_sources.pubmed import PubMedClient
 from api.data_sources.clinical_trials import ClinicalTrialsClient
 from api.data_sources.openfda import OpenFDAClient
 from api.data_sources.open_targets import OpenTargetsClient
+from api.graph_builder import build_knowledge_graph_data
 
 mcp = FastMCP(
     "BioLens",
@@ -22,6 +24,7 @@ pubmed = PubMedClient()
 trials = ClinicalTrialsClient()
 fda = OpenFDAClient()
 targets = OpenTargetsClient()
+agent = BiomedicalAgent(pubmed=pubmed, trials=trials, fda=fda, targets=targets)
 
 
 @mcp.tool()
@@ -94,46 +97,24 @@ async def build_knowledge_graph(entity: str) -> dict:
     Args:
         entity: A gene symbol, disease name, or drug name to explore.
     """
-    import asyncio
-
-    gene_task = pubmed.fetch_gene_info(entity)
-    assoc_task = targets.get_gene_disease_associations(entity)
-    trial_task = trials.search(entity, max_results=15)
-
-    gene_result, assoc_result, trial_result = await asyncio.gather(
-        gene_task, assoc_task, trial_task, return_exceptions=True
+    graph = await build_knowledge_graph_data(
+        query=entity,
+        pubmed=pubmed,
+        trials=trials,
+        fda=fda,
+        targets=targets,
+        max_trials=15,
+        max_articles=8,
+        max_adverse_events=8,
     )
+    return graph
 
-    nodes = []
-    edges = []
 
-    if not isinstance(gene_result, Exception) and gene_result:
-        nodes.append(
-            {"id": entity, "type": "gene", "label": entity, "data": gene_result}
-        )
-
-    if not isinstance(assoc_result, Exception):
-        for assoc in assoc_result[:10]:
-            did = assoc.get("disease_id", "")
-            nodes.append(
-                {"id": did, "type": "disease", "label": assoc.get("disease_name", "")}
-            )
-            edges.append(
-                {
-                    "source": entity,
-                    "target": did,
-                    "type": "associated_with",
-                    "score": assoc.get("score", 0),
-                }
-            )
-
-    if not isinstance(trial_result, Exception):
-        for t in trial_result[:10]:
-            tid = t.get("nct_id", "")
-            nodes.append({"id": tid, "type": "trial", "label": t.get("title", "")[:60]})
-            edges.append({"source": entity, "target": tid, "type": "studied_in"})
-
-    return {"entity": entity, "nodes": nodes, "edges": edges}
+@mcp.tool()
+async def summarize_entity(query: str) -> dict:
+    """Run an agentic summary with citations and graph data."""
+    result = await agent.run(message=query, history=[])
+    return result
 
 
 if __name__ == "__main__":

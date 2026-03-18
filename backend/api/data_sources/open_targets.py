@@ -89,7 +89,11 @@ class OpenTargetsClient:
             hits = data.get("data", [])
 
             for hit in hits:
-                if hit.get("approvedSymbol", "").upper() == gene_symbol.upper():
+                approved_symbol = hit.get("approvedSymbol", "")
+                symbol = hit.get("symbol", "")
+                if approved_symbol.upper() == gene_symbol.upper():
+                    return hit.get("id")
+                if symbol.upper() == gene_symbol.upper():
                     return hit.get("id")
 
-            return hits[0].get("id") if hits else None
+            return None

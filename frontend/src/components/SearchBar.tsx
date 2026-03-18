@@ -72,11 +72,12 @@ export default function SearchBar({ onSearch, isLoading }: Props) {
         {SUGGESTIONS.map((s) => (
           <button
             key={s.label}
+            disabled={isLoading}
             onClick={() => {
               setQuery(s.label);
               onSearch(s.label);
             }}
-            className={`rounded-full border px-3 py-1 text-xs transition hover:opacity-80 ${TYPE_COLORS[s.type]}`}
+            className={`rounded-full border px-3 py-1 text-xs transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-40 ${TYPE_COLORS[s.type]}`}
           >
             {s.label}
           </button>

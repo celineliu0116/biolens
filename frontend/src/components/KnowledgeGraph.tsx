@@ -15,6 +15,7 @@ const NODE_COLORS: Record<string, string> = {
   disease: "#f43f5e",
   trial: "#22c55e",
   drug: "#f59e0b",
+  paper: "#a78bfa",
 };
 
 const NODE_RADIUS: Record<string, number> = {
@@ -22,6 +23,7 @@ const NODE_RADIUS: Record<string, number> = {
   disease: 14,
   trial: 10,
   drug: 12,
+  paper: 9,
 };
 
 interface SimNode extends d3.SimulationNodeDatum, GraphNode {}
@@ -191,9 +193,7 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }: Props) {
     };
   }, [nodes, edges, onNodeClick]);
 
-  useEffect(() => {
-    render();
-  }, [render]);
+  useEffect(() => render(), [render]);
 
   return (
     <div className="relative h-full w-full">

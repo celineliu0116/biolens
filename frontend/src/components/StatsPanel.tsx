@@ -20,10 +20,11 @@ export default function StatsPanel({ nodes }: Props) {
     { label: "Diseases", count: counts.disease || 0, color: "text-rose-400", bg: "bg-rose-500/10" },
     { label: "Trials", count: counts.trial || 0, color: "text-green-400", bg: "bg-green-500/10" },
     { label: "Drugs", count: counts.drug || 0, color: "text-amber-400", bg: "bg-amber-500/10" },
+    { label: "Papers", count: counts.paper || 0, color: "text-violet-400", bg: "bg-violet-500/10" },
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
       {stats.map((s) => (
         <div key={s.label} className={`rounded-xl border border-white/5 ${s.bg} px-4 py-3`}>
           <p className={`text-2xl font-bold ${s.color}`}>{s.count}</p>

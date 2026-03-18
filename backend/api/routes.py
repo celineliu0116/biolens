@@ -1,9 +1,14 @@
-from fastapi import APIRouter, HTTPException, Query
+from typing import Literal
 
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
+
+from api.agent import BiomedicalAgent
 from api.data_sources.pubmed import PubMedClient
 from api.data_sources.clinical_trials import ClinicalTrialsClient
 from api.data_sources.openfda import OpenFDAClient
 from api.data_sources.open_targets import OpenTargetsClient
+from api.graph_builder import build_knowledge_graph_data
 
 router = APIRouter()
 
@@ -11,6 +16,17 @@ pubmed = PubMedClient()
 trials = ClinicalTrialsClient()
 fda = OpenFDAClient()
 targets = OpenTargetsClient()
+agent = BiomedicalAgent(pubmed=pubmed, trials=trials, fda=fda, targets=targets)
+
+
+class ChatTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=2000)
+    history: list[ChatTurn] = Field(default_factory=list)
 
 
 @router.get("/search")
@@ -77,55 +93,20 @@ async def get_drug_adverse_events(drug_name: str, limit: int = Query(20, le=100)
 async def build_knowledge_graph(
     q: str = Query(..., description="Entity to build graph around"),
 ):
-    """Build a knowledge graph around a biomedical entity (gene, disease, or drug)."""
-    import asyncio
-
-    gene_info = pubmed.fetch_gene_info(q)
-    associations = targets.get_gene_disease_associations(q)
-    trial_data = trials.search(q, max_results=20)
-
-    gene_result, assoc_result, trial_result = await asyncio.gather(
-        gene_info, associations, trial_data, return_exceptions=True
+    """Build a knowledge graph around a biomedical entity with topic summaries."""
+    graph = await build_knowledge_graph_data(
+        query=q,
+        pubmed=pubmed,
+        trials=trials,
+        fda=fda,
+        targets=targets,
     )
+    return graph
 
-    nodes = []
-    edges = []
 
-    if not isinstance(gene_result, Exception) and gene_result:
-        nodes.append({"id": q, "type": "gene", "label": q, "data": gene_result})
-
-    if not isinstance(assoc_result, Exception):
-        for assoc in assoc_result:
-            disease_id = assoc.get("disease_id", assoc.get("disease_name", ""))
-            disease_label = assoc.get("disease_name", disease_id)
-            nodes.append(
-                {
-                    "id": disease_id,
-                    "type": "disease",
-                    "label": disease_label,
-                    "data": assoc,
-                }
-            )
-            edges.append(
-                {
-                    "source": q,
-                    "target": disease_id,
-                    "type": "associated_with",
-                    "score": assoc.get("score", 0),
-                }
-            )
-
-    if not isinstance(trial_result, Exception):
-        for trial in trial_result:
-            trial_id = trial.get("nct_id", trial.get("id", ""))
-            nodes.append(
-                {
-                    "id": trial_id,
-                    "type": "trial",
-                    "label": trial.get("title", trial_id)[:60],
-                    "data": trial,
-                }
-            )
-            edges.append({"source": q, "target": trial_id, "type": "studied_in"})
-
-    return {"nodes": nodes, "edges": edges}
+@router.post("/chat")
+async def chat(request: ChatRequest):
+    """Research copilot endpoint that uses tool-augmented reasoning."""
+    history = [{"role": turn.role, "content": turn.content} for turn in request.history]
+    result = await agent.run(message=request.message, history=history)
+    return result

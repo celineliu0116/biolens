@@ -2,8 +2,11 @@
   "name": "biolens-frontend",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20 <23"
+  },
   "scripts": {
-    "dev": "next dev",
+    "dev": "NEXT_DISABLE_WEBPACK_CACHE=1 next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

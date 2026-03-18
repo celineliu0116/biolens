@@ -28,7 +28,7 @@ The visualization is fully interactive. You can drag nodes around, zoom in and o
 
 **Multi Source Data Integration** across four major biomedical APIs. PubMed provides literature data through the NCBI E-utilities. ClinicalTrials.gov provides trial data through their v2 API. OpenFDA provides drug adverse event data. Open Targets provides gene to disease association scores via GraphQL.
 
-**LLM Research Assistant** powered by the Model Context Protocol. The MCP server exposes five tools (`search_pubmed`, `get_gene_info`, `search_clinical_trials`, `get_drug_adverse_events`, `build_knowledge_graph`) that an LLM agent can call autonomously to answer complex research questions.
+**LLM Research Assistant** powered by tool-augmented reasoning. The backend exposes a real `/api/chat` endpoint that can call biomedical tools and return grounded responses with source links and graph updates. The MCP server also exposes tools for external MCP clients.
 
 **Real Time Search** across all data sources at once. Results come back as structured data and feed directly into the visualization layer.
 
@@ -38,7 +38,7 @@ The visualization is fully interactive. You can drag nodes around, zoom in and o
 
 The project has two main parts:
 
-**Backend** is a Python FastAPI application that handles all the data fetching, transformation, and API routing. It also hosts the MCP server that exposes biomedical research tools to LLM agents. The data integration layer uses async HTTP clients so all API calls happen concurrently.
+**Backend** is a Python FastAPI application that handles data fetching, transformation, API routing, and tool-assisted chat orchestration. It also hosts the MCP server that exposes biomedical research tools to LLM agents. The data integration layer uses async HTTP clients so API calls happen concurrently.
 
 **Frontend** is a Next.js 14 application with TypeScript. The knowledge graph is rendered using D3.js with force simulation. Vega Lite handles supplementary charts and heatmaps. The chat interface talks to the backend and updates the graph in real time. Tailwind CSS provides the styling with a dark, modern aesthetic.
 
@@ -47,6 +47,8 @@ biolens/
 ├── backend/
 │   ├── api/
 │   │   ├── routes.py              # FastAPI endpoints
+│   │   ├── graph_builder.py       # Graph assembly, dedupe, topic clusters
+│   │   ├── agent.py               # Tool-calling chat agent orchestration
 │   │   └── data_sources/
 │   │       ├── pubmed.py          # NCBI E-utilities client
 │   │       ├── clinical_trials.py # ClinicalTrials.gov v2 client
@@ -68,7 +70,8 @@ biolens/
 │   │   │   ├── KnowledgeGraph.tsx # D3.js force directed graph
 │   │   │   ├── ChatInterface.tsx  # LLM chat panel
 │   │   │   ├── SearchBar.tsx
-│   │   │   └── StatsPanel.tsx
+│   │   │   ├── StatsPanel.tsx
+│   │   │   └── TopicPanel.tsx
 │   │   └── lib/
 │   │       └── api.ts            # API client functions
 │   ├── package.json
@@ -82,7 +85,8 @@ biolens/
 
 ### Prerequisites
 
-You will need Python 3.12 or later, Node.js 20 or later, and optionally Docker if you want to run everything in containers.
+You will need Python 3.12 or later, Node.js 20-22, and optionally Docker if you want to run everything in containers.
+If you use `nvm`, run `nvm use` from the repo root (an `.nvmrc` is included).
 
 ### Running Locally
 
@@ -105,6 +109,17 @@ npm install
 cp .env.example .env.local
 npm run dev
 ```
+
+If you see intermittent unstyled pages on refresh in dev mode, clear the cache and restart:
+
+```bash
+cd frontend
+rm -rf .next
+npm run dev
+```
+
+Set `OPENAI_API_KEY` in `backend/.env` to enable full LLM agent mode for `/api/chat`.  
+If no key is set, chat still works in fallback mode using deterministic tool summaries.
 
 Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
@@ -134,6 +149,7 @@ It exposes these tools:
 | `search_clinical_trials` | Queries ClinicalTrials.gov with optional phase and status filters |
 | `get_drug_adverse_events` | Looks up FDA adverse event reports for a given drug |
 | `build_knowledge_graph` | Constructs a full knowledge graph around any biomedical entity |
+| `summarize_entity` | Runs a tool-augmented summary with citations and graph payload |
 
 ## API Endpoints
 
@@ -144,6 +160,7 @@ It exposes these tools:
 | `/api/diseases/{name}/trials` | GET | Clinical trials for a disease |
 | `/api/drugs/{name}/adverse-events` | GET | FDA adverse event reports |
 | `/api/knowledge-graph?q=TP53` | GET | Build a knowledge graph for any entity |
+| `/api/chat` | POST | Tool-augmented research chat with graph + citations |
 | `/health` | GET | Health check |
 
 ## Data Sources

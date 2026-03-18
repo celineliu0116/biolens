@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { ChatMessage, KnowledgeGraphData } from "@/lib/api";
+import { chat } from "@/lib/api";
 
 interface Props {
   onGraphUpdate?: (data: KnowledgeGraphData) => void;
@@ -12,7 +13,7 @@ export default function ChatInterface({ onGraphUpdate }: Props) {
     {
       role: "assistant",
       content:
-        'Welcome to BioLens! I can help you explore biomedical data. Try asking about a gene like "Tell me about BRCA1" or a disease like "Show clinical trials for lung cancer".',
+        'Welcome to BioLens! I can run tool-assisted biomedical exploration. Try: "summarize BRCA1 disease associations with sources".',
     },
   ]);
   const [input, setInput] = useState("");
@@ -33,42 +34,29 @@ export default function ChatInterface({ onGraphUpdate }: Props) {
     setIsLoading(true);
 
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const graphResp = await fetch(
-        `${API_BASE}/api/knowledge-graph?q=${encodeURIComponent(input)}`
+      const result = await chat(
+        input,
+        messages
+          .slice(-8)
+          .map((m) => ({ role: m.role, content: m.content }))
       );
+      const graphData: KnowledgeGraphData = result.graph_data;
 
-      if (graphResp.ok) {
-        const graphData: KnowledgeGraphData = await graphResp.json();
-        const nodeCount = graphData.nodes.length;
-        const edgeCount = graphData.edges.length;
+      const assistantMsg: ChatMessage = {
+        role: "assistant",
+        content: result.reply,
+        graphData,
+        citations: result.citations,
+      };
 
-        const types = new Set(graphData.nodes.map((n) => n.type));
-        const typeSummary = Array.from(types).join(", ");
-
-        const assistantMsg: ChatMessage = {
-          role: "assistant",
-          content: `I found ${nodeCount} entities and ${edgeCount} connections related to "${input}". The graph includes ${typeSummary} nodes. Click on any node in the visualization to explore further.`,
-          graphData,
-        };
-
-        setMessages((prev) => [...prev, assistantMsg]);
-        if (onGraphUpdate) onGraphUpdate(graphData);
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: "I had trouble fetching that data. Please check the backend is running and try again.",
-          },
-        ]);
-      }
+      setMessages((prev) => [...prev, assistantMsg]);
+      if (onGraphUpdate) onGraphUpdate(graphData);
     } catch {
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "Could not connect to the server. Make sure the backend is running on port 8000.",
+          content: "Could not run the research agent. Make sure backend is running and OPENAI_API_KEY is set for full agent mode.",
         },
       ]);
     } finally {
@@ -94,6 +82,24 @@ export default function ChatInterface({ onGraphUpdate }: Props) {
               }`}
             >
               {msg.content}
+              {msg.citations && msg.citations.length > 0 && (
+                <div className="mt-2 border-t border-white/10 pt-2 text-xs">
+                  <p className="mb-1 text-[10px] uppercase tracking-wide text-slate-500">Sources</p>
+                  <div className="space-y-1">
+                    {msg.citations.slice(0, 4).map((c, idx) => (
+                      <a
+                        key={`${c.url}-${idx}`}
+                        href={c.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block text-blue-300 transition hover:text-blue-200"
+                      >
+                        [{c.type}] {c.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -106,7 +112,7 @@ export default function ChatInterface({ onGraphUpdate }: Props) {
                 <span className="h-2 w-2 animate-bounce rounded-full bg-blue-400" style={{ animationDelay: "150ms" }} />
                 <span className="h-2 w-2 animate-bounce rounded-full bg-blue-400" style={{ animationDelay: "300ms" }} />
               </div>
-              <span className="text-xs text-slate-500">Searching biomedical databases...</span>
+              <span className="text-xs text-slate-500">Thinking with biomedical tools...</span>
             </div>
           </div>
         )}
