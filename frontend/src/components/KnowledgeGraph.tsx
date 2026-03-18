@@ -108,30 +108,30 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }: Props) {
       .attr("stroke-opacity", 0.6)
       .attr("marker-end", "url(#arrowhead)");
 
+    const drag = d3
+      .drag<SVGGElement, SimNode>()
+      .on("start", (event, d) => {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      })
+      .on("drag", (event, d) => {
+        d.fx = event.x;
+        d.fy = event.y;
+      })
+      .on("end", (event, d) => {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      });
+
     const nodeGroup = g
       .append("g")
-      .selectAll("g")
+      .selectAll<SVGGElement, SimNode>("g")
       .data(simNodes)
       .join("g")
       .attr("cursor", "pointer")
-      .call(
-        d3
-          .drag<SVGGElement, SimNode>()
-          .on("start", (event, d) => {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-          })
-          .on("drag", (event, d) => {
-            d.fx = event.x;
-            d.fy = event.y;
-          })
-          .on("end", (event, d) => {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-          })
-      );
+      .call(drag);
 
     nodeGroup
       .append("circle")
