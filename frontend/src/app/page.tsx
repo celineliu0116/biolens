@@ -180,7 +180,7 @@ export default function Home() {
 
         {/* Side Panel */}
         <div className="flex w-[380px] min-h-0 flex-col">
-          <div className="max-h-[52%] min-h-0 overflow-y-auto">
+          <div className="max-h-[48%] min-h-0 overflow-y-auto">
             {/* Node Detail */}
             {selectedNode && (
               <div className="border-b border-white/10 p-4">
@@ -223,7 +223,7 @@ export default function Home() {
           </div>
 
           {/* Chat */}
-          <div className="min-h-[280px] flex-1 border-t border-white/10">
+          <div className="min-h-[340px] flex-1 border-t border-white/10">
             <ChatInterface onGraphUpdate={handleGraphUpdate} />
           </div>
         </div>
