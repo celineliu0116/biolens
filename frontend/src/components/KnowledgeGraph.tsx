@@ -156,16 +156,61 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }: Props) {
       .attr("font-family", "Inter, sans-serif");
 
     nodeGroup
+      .on("mousemove", (event) => {
+        if (!tooltipRef.current) return;
+        const tooltip = tooltipRef.current;
+        const margin = 8;
+        const cursorOffset = 12;
+        const tooltipWidth = tooltip.offsetWidth;
+        const tooltipHeight = tooltip.offsetHeight;
+
+        let x = event.clientX + cursorOffset;
+        let y = event.clientY + cursorOffset;
+
+        if (x + tooltipWidth + margin > window.innerWidth) {
+          x = Math.max(margin, window.innerWidth - tooltipWidth - margin);
+        }
+        if (y + tooltipHeight + margin > window.innerHeight) {
+          y = event.clientY - tooltipHeight - cursorOffset;
+        }
+        if (y < margin) {
+          y = margin;
+        }
+
+        tooltip.style.left = `${x}px`;
+        tooltip.style.top = `${y}px`;
+      })
       .on("mouseover", function (event, d) {
         d3.select(this).select("circle").transition().duration(150).attr("opacity", 1).attr("r", (NODE_RADIUS[d.type] || 12) + 4);
         if (tooltipRef.current) {
-          tooltipRef.current.style.display = "block";
-          tooltipRef.current.style.left = `${event.pageX + 12}px`;
-          tooltipRef.current.style.top = `${event.pageY - 10}px`;
-          tooltipRef.current.innerHTML = `
+          const tooltip = tooltipRef.current;
+          const margin = 8;
+          const cursorOffset = 12;
+
+          tooltip.innerHTML = `
             <strong>${d.label}</strong><br/>
             <span style="color: ${NODE_COLORS[d.type]}">${d.type.toUpperCase()}</span>
           `;
+          tooltip.style.display = "block";
+
+          const tooltipWidth = tooltip.offsetWidth;
+          const tooltipHeight = tooltip.offsetHeight;
+          let x = event.clientX + cursorOffset;
+          let y = event.clientY + cursorOffset;
+
+          if (x + tooltipWidth + margin > window.innerWidth) {
+            x = Math.max(margin, window.innerWidth - tooltipWidth - margin);
+          }
+          if (y + tooltipHeight + margin > window.innerHeight) {
+            y = event.clientY - tooltipHeight - cursorOffset;
+          }
+          if (y < margin) {
+            y = margin;
+          }
+
+          tooltip.style.left = `${x}px`;
+          tooltip.style.top = `${y}px`;
+          tooltipRef.current.style.display = "block";
         }
       })
       .on("mouseout", function (_, d) {

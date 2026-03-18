@@ -42,13 +42,14 @@
 
 /* D3 tooltip styling */
 .d3-tooltip {
-  position: absolute;
+  position: fixed;
   padding: 8px 12px;
   background: rgba(17, 24, 39, 0.95);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 8px;
   color: #e2e8f0;
   font-size: 13px;
+  max-width: min(280px, calc(100vw - 16px));
   pointer-events: none;
   z-index: 100;
   backdrop-filter: blur(8px);
