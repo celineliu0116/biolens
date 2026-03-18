@@ -43,7 +43,10 @@ class OpenTargetsClient:
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(
                 f"{self.base_url}/graphql",
-                json={"query": query, "variables": {"ensemblId": ensembl_id, "size": 20}},
+                json={
+                    "query": query,
+                    "variables": {"ensemblId": ensembl_id, "size": 20},
+                },
             )
 
             if resp.status_code != 200:
@@ -59,14 +62,16 @@ class OpenTargetsClient:
         results = []
         for row in rows:
             disease = row.get("disease", {})
-            results.append({
-                "disease_id": disease.get("id", ""),
-                "disease_name": disease.get("name", ""),
-                "therapeutic_areas": [
-                    ta.get("name", "") for ta in disease.get("therapeuticAreas", [])
-                ],
-                "score": row.get("score", 0),
-            })
+            results.append(
+                {
+                    "disease_id": disease.get("id", ""),
+                    "disease_name": disease.get("name", ""),
+                    "therapeutic_areas": [
+                        ta.get("name", "") for ta in disease.get("therapeuticAreas", [])
+                    ],
+                    "score": row.get("score", 0),
+                }
+            )
 
         return results
 

@@ -14,7 +14,9 @@ targets = OpenTargetsClient()
 
 
 @router.get("/search")
-async def unified_search(q: str = Query(..., description="Search query across all sources")):
+async def unified_search(
+    q: str = Query(..., description="Search query across all sources"),
+):
     """Search across PubMed, ClinicalTrials.gov, and OpenFDA simultaneously."""
     import asyncio
 
@@ -29,7 +31,9 @@ async def unified_search(q: str = Query(..., description="Search query across al
     return {
         "query": q,
         "pubmed": pubmed_results if not isinstance(pubmed_results, Exception) else [],
-        "clinical_trials": trials_results if not isinstance(trials_results, Exception) else [],
+        "clinical_trials": trials_results
+        if not isinstance(trials_results, Exception)
+        else [],
         "openfda": fda_results if not isinstance(fda_results, Exception) else [],
     }
 
@@ -56,7 +60,9 @@ async def get_disease_trials(
     status: str | None = Query(None, description="Filter by trial status"),
 ):
     """Fetch clinical trials for a specific disease."""
-    results = await trials.search(disease_name, phase=phase, status=status, max_results=50)
+    results = await trials.search(
+        disease_name, phase=phase, status=status, max_results=50
+    )
     return {"disease": disease_name, "trials": results}
 
 
@@ -68,7 +74,9 @@ async def get_drug_adverse_events(drug_name: str, limit: int = Query(20, le=100)
 
 
 @router.get("/knowledge-graph")
-async def build_knowledge_graph(q: str = Query(..., description="Entity to build graph around")):
+async def build_knowledge_graph(
+    q: str = Query(..., description="Entity to build graph around"),
+):
     """Build a knowledge graph around a biomedical entity (gene, disease, or drug)."""
     import asyncio
 
@@ -90,23 +98,34 @@ async def build_knowledge_graph(q: str = Query(..., description="Entity to build
         for assoc in assoc_result:
             disease_id = assoc.get("disease_id", assoc.get("disease_name", ""))
             disease_label = assoc.get("disease_name", disease_id)
-            nodes.append({"id": disease_id, "type": "disease", "label": disease_label, "data": assoc})
-            edges.append({
-                "source": q,
-                "target": disease_id,
-                "type": "associated_with",
-                "score": assoc.get("score", 0),
-            })
+            nodes.append(
+                {
+                    "id": disease_id,
+                    "type": "disease",
+                    "label": disease_label,
+                    "data": assoc,
+                }
+            )
+            edges.append(
+                {
+                    "source": q,
+                    "target": disease_id,
+                    "type": "associated_with",
+                    "score": assoc.get("score", 0),
+                }
+            )
 
     if not isinstance(trial_result, Exception):
         for trial in trial_result:
             trial_id = trial.get("nct_id", trial.get("id", ""))
-            nodes.append({
-                "id": trial_id,
-                "type": "trial",
-                "label": trial.get("title", trial_id)[:60],
-                "data": trial,
-            })
+            nodes.append(
+                {
+                    "id": trial_id,
+                    "type": "trial",
+                    "label": trial.get("title", trial_id)[:60],
+                    "data": trial,
+                }
+            )
             edges.append({"source": q, "target": trial_id, "type": "studied_in"})
 
     return {"nodes": nodes, "edges": edges}

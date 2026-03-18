@@ -13,7 +13,10 @@ from api.data_sources.clinical_trials import ClinicalTrialsClient
 from api.data_sources.openfda import OpenFDAClient
 from api.data_sources.open_targets import OpenTargetsClient
 
-mcp = FastMCP("BioLens", instructions="Biomedical research assistant with access to PubMed, ClinicalTrials.gov, OpenFDA, and Open Targets.")
+mcp = FastMCP(
+    "BioLens",
+    instructions="Biomedical research assistant with access to PubMed, ClinicalTrials.gov, OpenFDA, and Open Targets.",
+)
 
 pubmed = PubMedClient()
 trials = ClinicalTrialsClient()
@@ -63,7 +66,9 @@ async def search_clinical_trials(
         status: Filter by status (e.g. "RECRUITING").
         max_results: Maximum number of results.
     """
-    results = await trials.search(query, phase=phase, status=status, max_results=max_results)
+    results = await trials.search(
+        query, phase=phase, status=status, max_results=max_results
+    )
     return {"query": query, "count": len(results), "trials": results}
 
 
@@ -103,13 +108,24 @@ async def build_knowledge_graph(entity: str) -> dict:
     edges = []
 
     if not isinstance(gene_result, Exception) and gene_result:
-        nodes.append({"id": entity, "type": "gene", "label": entity, "data": gene_result})
+        nodes.append(
+            {"id": entity, "type": "gene", "label": entity, "data": gene_result}
+        )
 
     if not isinstance(assoc_result, Exception):
         for assoc in assoc_result[:10]:
             did = assoc.get("disease_id", "")
-            nodes.append({"id": did, "type": "disease", "label": assoc.get("disease_name", "")})
-            edges.append({"source": entity, "target": did, "type": "associated_with", "score": assoc.get("score", 0)})
+            nodes.append(
+                {"id": did, "type": "disease", "label": assoc.get("disease_name", "")}
+            )
+            edges.append(
+                {
+                    "source": entity,
+                    "target": did,
+                    "type": "associated_with",
+                    "score": assoc.get("score", 0),
+                }
+            )
 
     if not isinstance(trial_result, Exception):
         for t in trial_result[:10]:

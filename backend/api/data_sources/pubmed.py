@@ -41,15 +41,17 @@ class PubMedClient:
             for pmid in id_list:
                 article = summary_data.get("result", {}).get(pmid, {})
                 if isinstance(article, dict):
-                    results.append({
-                        "pmid": pmid,
-                        "title": article.get("title", ""),
-                        "authors": [
-                            a.get("name", "") for a in article.get("authors", [])
-                        ],
-                        "source": article.get("source", ""),
-                        "pub_date": article.get("pubdate", ""),
-                    })
+                    results.append(
+                        {
+                            "pmid": pmid,
+                            "title": article.get("title", ""),
+                            "authors": [
+                                a.get("name", "") for a in article.get("authors", [])
+                            ],
+                            "source": article.get("source", ""),
+                            "pub_date": article.get("pubdate", ""),
+                        }
+                    )
 
             return results
 

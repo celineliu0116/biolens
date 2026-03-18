@@ -42,13 +42,17 @@ class ClinicalTrialsClient:
 
             phases = design_module.get("phases", [])
 
-            results.append({
-                "nct_id": id_module.get("nctId", ""),
-                "title": id_module.get("briefTitle", ""),
-                "status": status_module.get("overallStatus", ""),
-                "phases": phases,
-                "conditions": conditions_module.get("conditions", []),
-                "start_date": status_module.get("startDateStruct", {}).get("date", ""),
-            })
+            results.append(
+                {
+                    "nct_id": id_module.get("nctId", ""),
+                    "title": id_module.get("briefTitle", ""),
+                    "status": status_module.get("overallStatus", ""),
+                    "phases": phases,
+                    "conditions": conditions_module.get("conditions", []),
+                    "start_date": status_module.get("startDateStruct", {}).get(
+                        "date", ""
+                    ),
+                }
+            )
 
         return results
